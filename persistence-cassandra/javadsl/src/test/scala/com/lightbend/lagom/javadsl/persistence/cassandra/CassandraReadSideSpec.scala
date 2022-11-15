@@ -8,18 +8,16 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.CompletionStage
-
 import akka.Done
-import com.google.inject.Guice
 import com.lightbend.lagom.internal.javadsl.persistence.cassandra.CassandraPersistentEntityRegistry
 import com.lightbend.lagom.internal.javadsl.persistence.cassandra.CassandraReadSideImpl
 import com.lightbend.lagom.internal.javadsl.persistence.cassandra.JavadslCassandraOffsetStore
 import com.lightbend.lagom.internal.persistence.ReadSideConfig
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSettings
-import com.lightbend.lagom.javadsl.persistence.Offset.TimeBasedUUID
 import com.lightbend.lagom.javadsl.persistence._
 import com.typesafe.config.ConfigFactory
 import play.api.inject.guice.GuiceInjectorBuilder
+
 import scala.compat.java8.FutureConverters
 import scala.concurrent.Await
 import scala.concurrent.Future
@@ -33,10 +31,18 @@ object CassandraReadSideSpec {
   }
   val readSideConfig = ConfigFactory.parseString(s"""
     # speed up read-side queries
-    cassandra-query-journal {
+    akka.persistence.cassandra.events-by-tag {
       first-time-bucket = "$firstTimeBucket"
+      eventual-consistency-delay = 1s
+    }
+    akka.persistence.cassandra.query {
       refresh-interval = 1s
-      events-by-tag.eventual-consistency-delay = 1s
+    }
+    lagom.persistence.read-side {
+      cassandra {
+        keyspace-autocreate = true
+        tables-autocreate = true
+      }
     }
     """)
 

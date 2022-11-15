@@ -9,6 +9,9 @@ import lagom.Protobuf
 import lagom.build._
 import org.scalafmt.sbt.ScalafmtPlugin
 
+// Turn off eviction errors, introduced in sbt 1.5.0
+ThisBuild / evictionErrorLevel := Level.Info
+
 // Turn off "Resolving" log messages that clutter build logs
 ivyLoggingLevel in ThisBuild := UpdateLogging.Quiet
 
@@ -207,14 +210,14 @@ def multiJvm(project: Project): Project = {
 }
 
 def macroCompileSettings: Seq[Setting[_]] = Seq(
-  compile in Test ~= { a =>
+  compile in Test := {
     // Delete classes in "compile" packages after compiling.
     // These are used for compile-time tests and should be recompiled every time.
-    val products = (a.asInstanceOf[sbt.internal.inc.Analysis]).relations.allProducts.toSeq ** new SimpleFileFilter(
+    val products = (crossTarget in Test).value ** new SimpleFileFilter(
       _.getParentFile.getName == "compile"
     )
     IO.delete(products.get)
-    a
+    (compile in Test).value
   }
 )
 

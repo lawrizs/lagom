@@ -10,8 +10,11 @@ import akka.stream.scaladsl.Flow
 import akka.Done
 import akka.NotUsed
 import akka.actor.ActorSystem
-import com.datastax.driver.core.BatchStatement
-import com.datastax.driver.core.BoundStatement
+import com.datastax.oss.driver.api.core.DefaultConsistencyLevel
+import com.datastax.oss.driver.api.core.cql.BatchStatement
+import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder
+import com.datastax.oss.driver.api.core.cql.BatchType
+import com.datastax.oss.driver.api.core.cql.BoundStatement
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetDao
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetStore
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSettings
@@ -43,11 +46,12 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
 
   override def handle(): Flow[EventStreamElement[Event], Done, NotUsed] = {
     def executeStatements(statements: Seq[BoundStatement]): Future[Done] = {
-      val batch = new BatchStatement
       // statements is never empty, there is at least the store offset statement
       // for simplicity we just use batch api (even if there is only one)
-      batch.addAll(statements.asJava)
-      batch.setConsistencyLevel(readSideSettings.writeConsistency)
+      val batch = BatchStatement
+        .newInstance(BatchType.UNLOGGED)
+        .setExecutionProfileName(readSideSettings.writeProfile)
+        .addAll(statements.asJava)
       session.executeWriteBatch(batch)
     }
 

@@ -8,7 +8,7 @@
     </appender>
 
     <logger name="org.apache.cassandra" level="DEBUG" />
-    <logger name="com.datastax.driver" level="DEBUG" />
+    <logger name="com.datastax.oss.driver" level="DEBUG" />
 
     <logger name="akka.cluster" level="DEBUG" />
     <logger name="akka.persistence" level="DEBUG" />

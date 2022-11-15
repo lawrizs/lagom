@@ -28,9 +28,9 @@ object Dependencies {
     val Akka: String = sys.props.getOrElse("lagom.build.akka.version", "2.6.21") // sync with docs/build.sbt
     val AkkaHttp     = "10.2.10"
 
-    val AkkaPersistenceCassandra = "0.106"
+    val AkkaPersistenceCassandra = "1.1.0"
     // this is the version used in AkkaPersistenceCassandra, we stick with it
-    val CassandraDriver     = "3.7.2"
+    val CassandraDriver     = "4.15.0"
     val AkkaPersistenceJdbc = "3.5.3"
     val AkkaManagement      = "1.1.4"
 
@@ -38,7 +38,7 @@ object Dependencies {
 
     // Also be sure to update ScalaTestVersion in docs/build.sbt.
     val ScalaTest            = "3.0.8"
-    val Jackson              = "2.11.4"
+    val Jackson              = "2.13.4"
     val JacksonCore          = Jackson
     val JacksonDatatype      = Jackson
     val JacksonDatabind      = Jackson
@@ -50,7 +50,7 @@ object Dependencies {
     val NettyReactiveStreams = "2.0.8"
     val Kafka                = "2.1.1"
     // adapt links in (java/scala)/KafkaClient.md for minor version changes
-    val AlpakkaKafka  = "1.1.0"
+    val AlpakkaKafka  = "4.0.0"
     val Curator       = "2.12.0"
     val Immutables    = "2.8.2"
     val HibernateCore = "5.4.8.Final"
@@ -102,7 +102,7 @@ object Dependencies {
   private val sslConfig              = "com.typesafe" %% "ssl-config-core" % "0.4.2"
   private val h2                     = "com.h2database" % "h2" % "1.4.192"
   private val cassandraDriverCore =
-    ("com.datastax.cassandra" % "cassandra-driver-core" % Versions.CassandraDriver).excludeAll(excludeSlf4j: _*)
+    ("com.datastax.oss" % "java-driver-core" % Versions.CassandraDriver).excludeAll(excludeSlf4j: _*)
 
   private val akkaActor              = "com.typesafe.akka" %% "akka-actor" % Versions.Akka
   private val akkaRemote             = "com.typesafe.akka" %% "akka-remote" % Versions.Akka

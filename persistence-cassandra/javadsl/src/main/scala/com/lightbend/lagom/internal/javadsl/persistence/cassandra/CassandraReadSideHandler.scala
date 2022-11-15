@@ -12,8 +12,9 @@ import akka.japi.Pair
 import akka.persistence.query.Offset
 import akka.stream.ActorAttributes
 import akka.stream.javadsl.Flow
-import com.datastax.driver.core.BatchStatement
-import com.datastax.driver.core.BoundStatement
+import com.datastax.oss.driver.api.core.cql.BatchStatement
+import com.datastax.oss.driver.api.core.cql.BatchType
+import com.datastax.oss.driver.api.core.cql.BoundStatement
 import com.lightbend.lagom.internal.javadsl.persistence.OffsetAdapter
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetDao
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetStore
@@ -53,9 +54,10 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
       if (statements.isEmpty) {
         Future.successful(Done.getInstance())
       } else {
-        val batch = new BatchStatement
-        batch.addAll(statements)
-        batch.setConsistencyLevel(cassandraReadSideSettings.writeConsistency)
+        val batch = BatchStatement
+          .newInstance(BatchType.UNLOGGED)
+          .setExecutionProfileName(cassandraReadSideSettings.writeProfile)
+          .addAll(statements)
         session.executeWriteBatch(batch).toScala
       }
     }

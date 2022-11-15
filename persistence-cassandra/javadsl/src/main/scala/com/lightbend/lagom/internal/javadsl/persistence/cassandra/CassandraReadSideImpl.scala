@@ -14,7 +14,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import akka.Done
 import akka.actor.ActorSystem
-import com.datastax.driver.core.BoundStatement
+import com.datastax.oss.driver.api.core.cql.BoundStatement
 import com.lightbend.lagom.internal.javadsl.persistence.ReadSideImpl
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetStore
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSettings

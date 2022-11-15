@@ -6,15 +6,16 @@ package com.lightbend.lagom.internal.persistence.cassandra
 
 import akka.Done
 import akka.actor.ActorSystem
-import akka.persistence.cassandra.session.scaladsl.CassandraSession
+import akka.stream.alpakka.cassandra.scaladsl.CassandraSession
 import akka.persistence.query.NoOffset
 import akka.persistence.query.Offset
 import akka.persistence.query.Sequence
 import akka.persistence.query.TimeBasedUUID
 import akka.util.Timeout
-import com.datastax.driver.core.BoundStatement
-import com.datastax.driver.core.PreparedStatement
-import com.datastax.driver.core.Row
+import com.datastax.oss.driver.api.core.cql.BoundStatement
+import com.datastax.oss.driver.api.core.cql.PreparedStatement
+import com.datastax.oss.driver.api.core.cql.Row
+import com.datastax.oss.driver.api.core.cql.SimpleStatement
 import com.lightbend.lagom.internal.persistence.ReadSideConfig
 import com.lightbend.lagom.internal.persistence.cluster.ClusterStartupTask
 import com.lightbend.lagom.spi.persistence.OffsetDao
@@ -57,11 +58,11 @@ private[lagom] abstract class CassandraOffsetStore(
   } else None
 
   private def createTable(): Future[Done] = {
-    session.executeCreateTable(s"""
-                                  |CREATE TABLE IF NOT EXISTS offsetStore (
-                                  |  eventProcessorId text, tag text, timeUuidOffset timeuuid, sequenceOffset bigint,
-                                  |  PRIMARY KEY (eventProcessorId, tag)
-                                  |)""".stripMargin)
+    session.executeDDL(s"""
+                          |CREATE TABLE IF NOT EXISTS offsetStore (
+                          |  eventProcessorId text, tag text, timeUuidOffset timeuuid, sequenceOffset bigint,
+                          |  PRIMARY KEY (eventProcessorId, tag)
+                          |)""".stripMargin)
   }
 
   protected def doPrepare(eventProcessorId: String, tag: String): Future[(Offset, PreparedStatement)] = {
@@ -76,11 +77,15 @@ private[lagom] abstract class CassandraOffsetStore(
   }
 
   private def prepareWriteOffset: Future[PreparedStatement] = {
-    session
-      .prepare(
-        "INSERT INTO offsetStore (eventProcessorId, tag, timeUuidOffset, sequenceOffset) VALUES (?, ?, ?, ?)"
+    session.underlying().map { session =>
+      session.prepare(
+        SimpleStatement
+          .newInstance(
+            "INSERT INTO offsetStore (eventProcessorId, tag, timeUuidOffset, sequenceOffset) VALUES (?, ?, ?, ?)"
+          )
+          .setExecutionProfileName(cassandraReadSideSettings.writeProfile)
       )
-      .map(_.setConsistencyLevel(cassandraReadSideSettings.writeConsistency))
+    }
   }
 
   private def readOffset(eventProcessorId: String, tag: String): Future[Offset] = {
@@ -96,7 +101,7 @@ private[lagom] abstract class CassandraOffsetStore(
   protected def extractOffset(maybeRow: Option[Row]): Offset = {
     maybeRow match {
       case Some(row) =>
-        val uuid = row.getUUID("timeUuidOffset")
+        val uuid = row.getUuid("timeUuidOffset")
         if (uuid != null) {
           TimeBasedUUID(uuid)
         } else {

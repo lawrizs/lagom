@@ -4,6 +4,10 @@
 
 package com.lightbend.lagom.dev
 
+import com.datastax.oss.driver.api.core.CqlSession
+import com.datastax.oss.driver.api.core.config.DefaultDriverOption
+import com.datastax.oss.driver.api.core.config.DriverConfigLoader
+
 import java.io.Closeable
 import java.io.File
 import java.net.URI
@@ -13,9 +17,6 @@ import java.util.concurrent.CompletionStage
 import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.{ Map => JMap }
-
-import com.datastax.driver.core.Cluster
-
 import scala.collection.JavaConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
@@ -216,18 +217,21 @@ private[lagom] object Servers {
       }
 
     private def waitForRunningCassandra(log: MiniLogger, server: Server, maxWaiting: FiniteDuration): Unit = {
-      val contactPoint   = Seq(new java.net.InetSocketAddress(server.hostname, server.port)).asJava
-      val clusterBuilder = Cluster.builder.addContactPointsWithPorts(contactPoint)
+      val contactPoint = Seq(new java.net.InetSocketAddress(server.hostname, server.port)).asJava
 
       @annotation.tailrec
       def tryConnect(deadline: Deadline): Unit = {
         print(".") // each attempts prints a dot (informing the user of progress)
         try {
-          val session = clusterBuilder.build().connect()
+          val session = CqlSession
+            .builder()
+            .withConfigLoader(DriverConfigLoader.programmaticBuilder().build())
+            .addContactPoints(contactPoint)
+            .build()
+
           println() // we don't want to print the message on the same line of the dots...
           log.info("Cassandra server running at " + server.address)
           session.closeAsync()
-          session.getCluster.closeAsync()
         } catch {
           case _: Exception =>
             if (deadline.hasTimeLeft()) {

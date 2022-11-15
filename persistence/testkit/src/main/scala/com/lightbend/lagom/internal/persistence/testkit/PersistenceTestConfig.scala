@@ -46,23 +46,24 @@ private[lagom] object PersistenceTestConfig {
    */
   def cassandraConfigMapOnly(keyspacePrefix: String, cassandraPort: Int): Map[String, AnyRef] =
     Map(
-      "akka.loglevel"                                          -> "INFO",
-      "akka.persistence.journal.plugin"                        -> "cassandra-journal",
-      "akka.persistence.snapshot-store.plugin"                 -> "cassandra-snapshot-store",
-      "akka.test.single-expect-default"                        -> "5s",
-      "cassandra-journal.contact-points.0"                     -> "127.0.0.1",
-      "cassandra-journal.keyspace"                             -> keyspacePrefix,
-      "cassandra-journal.port"                                 -> cassandraPort.toString,
-      "cassandra-journal.session-provider"                     -> "akka.persistence.cassandra.ConfigSessionProvider",
-      "cassandra-query-journal.eventual-consistency-delay"     -> "2s",
-      "cassandra-snapshot-store.contact-points.0"              -> "127.0.0.1",
-      "cassandra-snapshot-store.keyspace"                      -> keyspacePrefix,
-      "cassandra-snapshot-store.port"                          -> cassandraPort.toString,
-      "cassandra-snapshot-store.session-provider"              -> "akka.persistence.cassandra.ConfigSessionProvider",
-      "lagom.persistence.read-side.cassandra.contact-points.0" -> "127.0.0.1",
-      "lagom.persistence.read-side.cassandra.keyspace"         -> s"${keyspacePrefix}_read",
-      "lagom.persistence.read-side.cassandra.port"             -> cassandraPort.toString,
-      "lagom.persistence.read-side.cassandra.session-provider" -> "akka.persistence.cassandra.ConfigSessionProvider"
+      "akka.loglevel"                                                       -> "INFO",
+      "akka.persistence.journal.plugin"                                     -> "akka.persistence.cassandra.journal",
+      "akka.persistence.snapshot-store.plugin"                              -> "akka.persistence.cassandra.snapshot",
+      "akka.test.single-expect-default"                                     -> "5s",
+      "datastax-java-driver.basic.contact-points.0"                         -> s"127.0.0.1:${cassandraPort.toString}",
+      "datastax-java-driver.basic.load-balancing-policy.local-datacenter"   -> "datacenter1",
+      "datastax-java-driver.advanced.reconnect-on-init"                     -> "false",
+      "datastax-java-driver.basic.request.timeout"                          -> "5s",
+      "lagom.persistence.read-side.cassandra.keyspace-autocreate"           -> "true",
+      "lagom.persistence.read-side.cassandra.tables-autocreate"             -> "true",
+      "akka.persistence.cassandra.journal.keyspace-autocreate"              -> "true",
+      "akka.persistence.cassandra.journal.tables-autocreate"                -> "true",
+      "akka.persistence.cassandra.journal.keyspace"                         -> keyspacePrefix,
+      "akka.persistence.cassandra.events-by-tag.eventual-consistency-delay" -> "2s",
+      "akka.persistence.cassandra.snapshot.keyspace"                        -> keyspacePrefix,
+      "akka.persistence.cassandra.snapshot.keyspace-autocreate"             -> "true",
+      "akka.persistence.cassandra.snapshot.tables-autocreate"               -> "true",
+      "lagom.persistence.read-side.cassandra.keyspace"                      -> s"${keyspacePrefix}_read",
     )
 
   /**

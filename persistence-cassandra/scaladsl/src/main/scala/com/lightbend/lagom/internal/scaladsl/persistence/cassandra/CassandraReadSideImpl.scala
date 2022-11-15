@@ -6,7 +6,7 @@ package com.lightbend.lagom.internal.scaladsl.persistence.cassandra
 
 import akka.Done
 import akka.actor.ActorSystem
-import com.datastax.driver.core.BoundStatement
+import com.datastax.oss.driver.api.core.cql.BoundStatement
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetStore
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSettings
 import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler

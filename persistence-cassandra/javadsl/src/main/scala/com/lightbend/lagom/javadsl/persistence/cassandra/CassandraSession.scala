@@ -6,21 +6,19 @@ package com.lightbend.lagom.javadsl.persistence.cassandra
 
 import java.util.concurrent.CompletionStage
 import java.util.Optional
-import java.util.{ List => JList }
+import java.util.{List => JList}
 import javax.inject.Inject
 import javax.inject.Singleton
-
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.persistence.cassandra.session.CassandraSessionSettings
-import akka.persistence.cassandra.session.scaladsl.{ CassandraSession => AkkaScalaCassandraSession }
-import akka.persistence.cassandra.session.javadsl.{ CassandraSession => AkkaJavaCassandraSession }
+import akka.stream.alpakka.cassandra.scaladsl.{CassandraSession => AkkaScalaCassandraSession}
+import akka.stream.alpakka.cassandra.javadsl.{CassandraSession => AkkaJavaCassandraSession}
 import akka.stream.javadsl
 import akka.Done
 import akka.NotUsed
-import com.datastax.driver.core._
-import com.lightbend.lagom.internal.persistence.cassandra.CassandraKeyspaceConfig
-import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSessionProvider
+import com.datastax.oss.driver.api.core.CqlSession
+import com.datastax.oss.driver.api.core.cql._
+import com.lightbend.lagom.internal.persistence.cassandra.{CassandraKeyspaceConfig, CassandraReadSideSessionProvider}
 
 import scala.annotation.varargs
 import scala.concurrent.ExecutionContext
@@ -38,18 +36,12 @@ import scala.concurrent.ExecutionContext
 @Singleton
 final class CassandraSession(
     system: ActorSystem,
-    settings: CassandraSessionSettings,
     executionContext: ExecutionContext
 ) {
   @Inject
   def this(system: ActorSystem) =
     this(
       system,
-      settings = CassandraSessionSettings(
-        system.settings.config.getConfig(
-          "lagom.persistence.read-side.cassandra"
-        )
-      ),
       executionContext = system.dispatchers.lookup(
         system.settings.config.getString(
           "lagom.persistence.read-side.use-dispatcher"
@@ -65,7 +57,7 @@ final class CassandraSession(
    * Internal API
    */
   private[lagom] val scalaDelegate: AkkaScalaCassandraSession =
-    CassandraReadSideSessionProvider(system, settings, executionContext)
+    CassandraReadSideSessionProvider(system, executionContext)
   private val delegate = new AkkaJavaCassandraSession(scalaDelegate)
 
   /**
@@ -74,7 +66,7 @@ final class CassandraSession(
    * Can be used in case you need to do something that is not provided by the
    * API exposed by this class. Be careful to not use blocking calls.
    */
-  def underlying(): CompletionStage[Session] =
+  def underlying(): CompletionStage[CqlSession] =
     delegate.underlying()
 
   /**
@@ -84,7 +76,7 @@ final class CassandraSession(
    * or if the statement fails.
    */
   def executeCreateTable(stmt: String): CompletionStage[Done] =
-    delegate.executeCreateTable(stmt)
+    delegate.executeDDL(stmt)
 
   /**
    * Create a `PreparedStatement` that can be bound and used in
@@ -120,7 +112,7 @@ final class CassandraSession(
    * The returned `CompletionStage` is completed when the statement has been
    * successfully executed, or if it fails.
    */
-  def executeWrite(stmt: Statement): CompletionStage[Done] =
+  def executeWrite(stmt: Statement[_]): CompletionStage[Done] =
     delegate.executeWrite(stmt)
 
   /**
@@ -151,7 +143,7 @@ final class CassandraSession(
    * Otherwise you have to connect a `Sink` that consumes the messages from
    * this `Source` and then `run` the stream.
    */
-  def select(stmt: Statement): javadsl.Source[Row, NotUsed] =
+  def select(stmt: Statement[_]): javadsl.Source[Row, NotUsed] =
     delegate.select(stmt)
 
   /**
@@ -181,7 +173,7 @@ final class CassandraSession(
    *
    * The returned `CompletionStage` is completed with the found rows.
    */
-  def selectAll(stmt: Statement): CompletionStage[JList[Row]] =
+  def selectAll(stmt: Statement[_]): CompletionStage[JList[Row]] =
     delegate.selectAll(stmt)
 
   /**
@@ -207,7 +199,7 @@ final class CassandraSession(
    * The returned `CompletionStage` is completed with the first row,
    * if any.
    */
-  def selectOne(stmt: Statement): CompletionStage[Optional[Row]] =
+  def selectOne(stmt: Statement[_]): CompletionStage[Optional[Row]] =
     delegate.selectOne(stmt)
 
   /**

@@ -30,10 +30,18 @@ object CassandraReadSideSpec {
 
   val readSideConfig = ConfigFactory.parseString(s"""
     # speed up read-side queries
-    cassandra-query-journal {
+    akka.persistence.cassandra.events-by-tag {
       first-time-bucket = "$firstTimeBucket"
+      eventual-consistency-delay = 1s
+    }
+    akka.persistence.cassandra.query {
       refresh-interval = 1s
-      events-by-tag.eventual-consistency-delay = 1s
+    }
+    lagom.persistence.read-side {
+      cassandra {
+        keyspace-autocreate = true
+        tables-autocreate = true
+      }
     }
     """)
 

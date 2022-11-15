@@ -8,8 +8,8 @@ package docs.home.scaladsl.persistence
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import akka.Done
-import com.datastax.driver.core.BoundStatement
-import com.datastax.driver.core.PreparedStatement
+import com.datastax.oss.driver.api.core.cql.BoundStatement
+import com.datastax.oss.driver.api.core.cql.PreparedStatement
 import com.lightbend.lagom.scaladsl.persistence.AggregateEventTag
 import com.lightbend.lagom.scaladsl.persistence.EventStreamElement
 import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor
@@ -46,7 +46,7 @@ trait CassandraBlogEventProcessor {
 
     //#create-table
     private def createTable(): Future[Done] =
-      session.executeCreateTable(
+      session.executeDDL(
         "CREATE TABLE IF NOT EXISTS blogsummary ( " +
           "id TEXT, title TEXT, PRIMARY KEY (id))"
       )

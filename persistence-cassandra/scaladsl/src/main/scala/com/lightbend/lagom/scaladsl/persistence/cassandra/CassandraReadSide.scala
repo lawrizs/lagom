@@ -5,7 +5,7 @@
 package com.lightbend.lagom.scaladsl.persistence.cassandra
 
 import akka.Done
-import com.datastax.driver.core.BoundStatement
+import com.datastax.oss.driver.api.core.cql.BoundStatement
 import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler
 import com.lightbend.lagom.scaladsl.persistence.AggregateEvent
 import com.lightbend.lagom.scaladsl.persistence.AggregateEventTag

@@ -10,11 +10,11 @@
     </appender>
 
     <logger name="org.apache.cassandra" level="ERROR" />
-    <logger name="com.datastax.driver" level="WARN" />
+    <logger name="com.datastax.oss.driver" level="WARN" />
     <logger name="akka" level="WARN" />
 
     <!-- don't use the following in actual code. These are only to keep scripted tests' output cleaner-->
-    <logger name="com.datastax.driver.core.ControlConnection" level="OFF" />
+    <logger name="com.datastax.oss.driver.internal.core.control.ControlConnection" level="OFF" />
     <logger name="akka.stream.scaladsl.RestartWithBackoffSource" level="ERROR" />
 
 

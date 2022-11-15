@@ -6,8 +6,8 @@ package com.lightbend.lagom.scaladsl.persistence.cassandra
 
 import akka.Done
 import akka.actor.ActorSystem
-import com.datastax.driver.core.BoundStatement
-import com.datastax.driver.core.PreparedStatement
+import com.datastax.oss.driver.api.core.cql.BoundStatement
+import com.datastax.oss.driver.api.core.cql.PreparedStatement
 import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler
 import com.lightbend.lagom.scaladsl.persistence.AggregateEventTag
 import com.lightbend.lagom.scaladsl.persistence.EventStreamElement
@@ -26,26 +26,27 @@ object TestEntityReadSide {
       @volatile var writeStmt: PreparedStatement = null
 
       def createTable(): Future[Done] = {
-        return session.executeCreateTable(
+        session.executeCreateTable(
           "CREATE TABLE IF NOT EXISTS testcounts (id text, count bigint, PRIMARY KEY (id))"
         )
       }
 
       def prepareWriteStmt(): Future[Done] = {
-        return session.prepare("UPDATE testcounts SET count = ? WHERE id = ?").map { ws =>
+        session.prepare("UPDATE testcounts SET count = ? WHERE id = ?").map { ws =>
           writeStmt = ws
           Done
         }
       }
 
       def updateCount(element: EventStreamElement[TestEntity.Appended]): Future[immutable.Seq[BoundStatement]] = {
-        return session.selectOne("SELECT count FROM testcounts WHERE id = ?", element.entityId).map { maybeRow =>
-          val count =
+        session.selectOne("SELECT count FROM testcounts WHERE id = ?", element.entityId).map { maybeRow =>
+          val count = {
             maybeRow match {
               case Some(row) => row.getLong("count")
               case None      => 0L
             }
-          Vector(writeStmt.bind(java.lang.Long.valueOf(count + 1L), element.entityId));
+          }
+          Vector(writeStmt.bind(java.lang.Long.valueOf(count + 1L), element.entityId))
         }
       }
 

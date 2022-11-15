@@ -4,21 +4,15 @@
 
 package com.lightbend.lagom.scaladsl.persistence.cassandra
 
-import scala.concurrent.Future
-import java.net.URI
-
 import com.lightbend.lagom.internal.scaladsl.persistence.cassandra.CassandraPersistentEntityRegistry
 import com.lightbend.lagom.internal.scaladsl.persistence.cassandra.CassandraReadSideImpl
 import com.lightbend.lagom.internal.scaladsl.persistence.cassandra.ScaladslCassandraOffsetStore
-import com.lightbend.lagom.scaladsl.api.ServiceLocator
 import com.lightbend.lagom.scaladsl.persistence.PersistenceComponents
 import com.lightbend.lagom.scaladsl.persistence.PersistentEntityRegistry
 import com.lightbend.lagom.scaladsl.persistence.ReadSidePersistenceComponents
 import com.lightbend.lagom.scaladsl.persistence.WriteSidePersistenceComponents
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSettings
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetStore
-import com.lightbend.lagom.internal.persistence.cassandra.ServiceLocatorAdapter
-import com.lightbend.lagom.internal.persistence.cassandra.ServiceLocatorHolder
 import com.lightbend.lagom.spi.persistence.OffsetStore
 
 /**
@@ -35,18 +29,6 @@ trait CassandraPersistenceComponents
 trait WriteSideCassandraPersistenceComponents extends WriteSidePersistenceComponents {
   override lazy val persistentEntityRegistry: PersistentEntityRegistry =
     new CassandraPersistentEntityRegistry(actorSystem)
-
-  def serviceLocator: ServiceLocator
-
-  // eager initialization
-  private[lagom] val serviceLocatorHolder: ServiceLocatorHolder = {
-    val holder = ServiceLocatorHolder(actorSystem)
-    holder.setServiceLocator(new ServiceLocatorAdapter {
-      override def locateAll(name: String): Future[List[URI]] =
-        serviceLocator.locateAll(name)
-    })
-    holder
-  }
 }
 
 /**

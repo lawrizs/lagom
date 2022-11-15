@@ -8,15 +8,15 @@
   </appender>
 
   <logger name="org.apache.cassandra" level="ERROR" />
-  <logger name="com.datastax.driver" level="WARN" />
-  
+  <logger name="com.datastax.oss.driver" level="WARN" />
+
   <logger name="mockservice" level="OFF" />
-  
+
   <logger name="akka" level="WARN" />
-  
+
   <root level="INFO">
     <appender-ref ref="STDOUT" />
   </root>
-  
+
 </configuration>
 

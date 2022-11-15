@@ -27,7 +27,7 @@ public class ${service2ClassName}Repository {
     // If there's no initialised session, or if the initialised session future completed
     // with an exception, then reinitialise the session and attempt to create the tables
     if (initialisedSession == null || initialisedSession.isCompletedExceptionally()) {
-      initialisedSession = uninitialisedSession.executeCreateTable(
+      initialisedSession = uninitialisedSession.executeDDL(
           "CREATE TABLE IF NOT EXISTS greeting_message (name text PRIMARY KEY, message text)"
       ).thenApply(done -> uninitialisedSession).toCompletableFuture();
     }

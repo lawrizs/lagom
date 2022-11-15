@@ -6,11 +6,11 @@ package com.lightbend.lagom.scaladsl.persistence.cassandra
 
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.persistence.cassandra.session.CassandraSessionSettings
 import akka.stream.scaladsl
 import akka.Done
 import akka.NotUsed
-import com.datastax.driver.core._
+import com.datastax.oss.driver.api.core.CqlSession
+import com.datastax.oss.driver.api.core.cql._
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraKeyspaceConfig
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSessionProvider
 
@@ -30,17 +30,11 @@ import scala.concurrent.Future
  */
 final class CassandraSession(
     system: ActorSystem,
-    settings: CassandraSessionSettings,
     executionContext: ExecutionContext
 ) {
   def this(system: ActorSystem) =
     this(
       system,
-      settings = CassandraSessionSettings(
-        system.settings.config.getConfig(
-          "lagom.persistence.read-side.cassandra"
-        )
-      ),
       executionContext = system.dispatchers.lookup(
         system.settings.config.getString(
           "lagom.persistence.read-side.use-dispatcher"
@@ -55,8 +49,8 @@ final class CassandraSession(
   /**
    * Internal API
    */
-  private[lagom] val delegate: akka.persistence.cassandra.session.scaladsl.CassandraSession =
-    CassandraReadSideSessionProvider(system, settings, executionContext)
+  private[lagom] val delegate: akka.stream.alpakka.cassandra.scaladsl.CassandraSession =
+    CassandraReadSideSessionProvider(system, executionContext)
 
   /**
    * The `Session` of the underlying
@@ -64,7 +58,7 @@ final class CassandraSession(
    * Can be used in case you need to do something that is not provided by the
    * API exposed by this class. Be careful to not use blocking calls.
    */
-  def underlying(): Future[Session] =
+  def underlying(): Future[CqlSession] =
     delegate.underlying()
 
   /**
@@ -74,7 +68,7 @@ final class CassandraSession(
    * or if the statement fails.
    */
   def executeCreateTable(stmt: String): Future[Done] =
-    delegate.executeCreateTable(stmt)
+    delegate.executeDDL(stmt)
 
   /**
    * Create a `PreparedStatement` that can be bound and used in
@@ -110,7 +104,7 @@ final class CassandraSession(
    * The returned `CompletionStage` is completed when the statement has been
    * successfully executed, or if it fails.
    */
-  def executeWrite(stmt: Statement): Future[Done] =
+  def executeWrite(stmt: Statement[_]): Future[Done] =
     delegate.executeWrite(stmt)
 
   /**
@@ -141,7 +135,7 @@ final class CassandraSession(
    * Otherwise you have to connect a `Sink` that consumes the messages from
    * this `Source` and then `run` the stream.
    */
-  def select(stmt: Statement): scaladsl.Source[Row, NotUsed] =
+  def select(stmt: Statement[_]): scaladsl.Source[Row, NotUsed] =
     delegate.select(stmt)
 
   /**
@@ -171,7 +165,7 @@ final class CassandraSession(
    *
    * The returned `CompletionStage` is completed with the found rows.
    */
-  def selectAll(stmt: Statement): Future[Seq[Row]] =
+  def selectAll(stmt: Statement[_]): Future[Seq[Row]] =
     delegate.selectAll(stmt)
 
   /**
@@ -197,7 +191,7 @@ final class CassandraSession(
    * The returned `CompletionStage` is completed with the first row,
    * if any.
    */
-  def selectOne(stmt: Statement): Future[Option[Row]] =
+  def selectOne(stmt: Statement[_]): Future[Option[Row]] =
     delegate.selectOne(stmt)
 
   /**

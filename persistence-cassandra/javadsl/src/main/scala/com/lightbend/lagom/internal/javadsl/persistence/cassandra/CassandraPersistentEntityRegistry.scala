@@ -23,8 +23,8 @@ private[lagom] final class CassandraPersistentEntityRegistry @Inject() (system: 
     extends AbstractPersistentEntityRegistry(system, injector) {
   private val log = Logging.getLogger(system, getClass)
 
-  CassandraKeyspaceConfig.validateKeyspace("cassandra-journal", system.settings.config, log)
-  CassandraKeyspaceConfig.validateKeyspace("cassandra-snapshot-store", system.settings.config, log)
+  CassandraKeyspaceConfig.validateKeyspace("akka.persistence.cassandra.journal", system.settings.config, log)
+  CassandraKeyspaceConfig.validateKeyspace("akka.persistence.cassandra.snapshot", system.settings.config, log)
 
   protected override val queryPluginId = Optional.of(CassandraReadJournal.Identifier)
 }

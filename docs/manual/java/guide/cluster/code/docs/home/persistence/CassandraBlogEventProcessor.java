@@ -6,8 +6,8 @@ package docs.home.persistence;
 
 // #imports
 import akka.Done;
-import com.datastax.driver.core.BoundStatement;
-import com.datastax.driver.core.PreparedStatement;
+import com.datastax.oss.driver.api.core.cql.BoundStatement;
+import com.datastax.oss.driver.api.core.cql.PreparedStatement;
 import com.lightbend.lagom.javadsl.persistence.AggregateEventTag;
 import com.lightbend.lagom.javadsl.persistence.ReadSideProcessor;
 import com.lightbend.lagom.javadsl.persistence.cassandra.CassandraReadSide;
@@ -72,7 +72,7 @@ public interface CassandraBlogEventProcessor {
 
     // #create-table
     private CompletionStage<Done> createTable() {
-      return session.executeCreateTable(
+      return session.executeDDL(
           "CREATE TABLE IF NOT EXISTS blogsummary ( " + "id TEXT, title TEXT, PRIMARY KEY (id))");
     }
     // #create-table
