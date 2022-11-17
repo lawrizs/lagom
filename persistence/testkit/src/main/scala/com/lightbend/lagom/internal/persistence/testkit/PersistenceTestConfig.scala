@@ -8,6 +8,10 @@ import scala.collection.JavaConverters._
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 
+import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+
 private[lagom] object PersistenceTestConfig {
   lazy val BasicConfigMap: Map[String, AnyRef] = Map(
     "lagom.akka.management.enabled" -> "off",
@@ -60,11 +64,18 @@ private[lagom] object PersistenceTestConfig {
       "akka.persistence.cassandra.journal.tables-autocreate"                -> "true",
       "akka.persistence.cassandra.journal.keyspace"                         -> keyspacePrefix,
       "akka.persistence.cassandra.events-by-tag.eventual-consistency-delay" -> "2s",
+      "akka.persistence.cassandra.events-by-tag.first-time-bucket"          -> firstTimeBucket,
       "akka.persistence.cassandra.snapshot.keyspace"                        -> keyspacePrefix,
       "akka.persistence.cassandra.snapshot.keyspace-autocreate"             -> "true",
       "akka.persistence.cassandra.snapshot.tables-autocreate"               -> "true",
       "lagom.persistence.read-side.cassandra.keyspace"                      -> s"${keyspacePrefix}_read",
     )
+
+  private def firstTimeBucket: String = {
+    val today                                = LocalDateTime.now(ZoneOffset.UTC)
+    val firstBucketFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HH:mm")
+    today.minusHours(3).format(firstBucketFormat)
+  }
 
   /**
    * Return the Cassandra config without the default Cluster settings
