@@ -2,12 +2,14 @@ name: Publish
 
 on:
   push:
+    branches:
+      - main
     tags: ["*"]
 
 jobs:
   release:
     # runs on main repo only
-    if: github.repository == 'lagom/lagom'
+    if: github.repository == 'lawrizs/lagom'
     name: Release
     environment: release
     runs-on: ubuntu-20.04
@@ -18,15 +20,12 @@ jobs:
           # we don't know what commit the last tag was it's safer to get entire repo so previousStableVersion resolves
           fetch-depth: 0
 
-      - name: Set up JDK 8
+      - name: Set up JDK 11
         uses: coursier/setup-action@v1.1.2
         with:
-          jvm: adopt:8
+          jvm: adopt:11
 
       - name: Publish
         env:
-          PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-          PGP_SECRET: ${{ secrets.PGP_SECRET }}
-          SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-          SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        run: sbt ci-release
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: sbt clean +test +publish

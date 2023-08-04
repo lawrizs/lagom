@@ -39,7 +39,7 @@ def common: Seq[Setting[_]] = evictionSettings ++ Seq(
   // Must be "Apache-2.0", because bintray requires that it is a license that it knows about
   licenses := Seq(("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0.html"))),
   homepage := Some(url("https://www.lagomframework.com/")),
-  sonatypeProfileName := "com.lightbend",
+  // sonatypeProfileName := "com.lightbend",
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.ScalaLibrary,
   headerLicense := Some(
     HeaderLicense.Custom(

@@ -9,7 +9,7 @@ addSbtPlugin("com.eed3si9n" % "sbt-unidoc" % "0.4.3")
 // affect the release process, review https://github.com/lagom/lagom/issues/1496#issuecomment-408398508
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "5.6.0")
 
-addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.5.9")
+//addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.5.9")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-multi-jvm"   % "0.4.0")
 addSbtPlugin("com.typesafe"     % "sbt-mima-plugin" % "1.1.0")
