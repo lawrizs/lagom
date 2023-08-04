@@ -50,7 +50,7 @@ object Dependencies {
     val NettyReactiveStreams = "2.0.8"
     val Kafka                = "2.1.1"
     // adapt links in (java/scala)/KafkaClient.md for minor version changes
-    val AlpakkaKafka  = "4.0.0"
+    val AlpakkaKafka  = "2.1.1"
     val Curator       = "2.12.0"
     val Immutables    = "2.8.2"
     val HibernateCore = "5.4.8.Final"
