@@ -30,7 +30,7 @@ object Dependencies {
 
     val AkkaPersistenceCassandra = "1.1.0"
     // this is the version used in AkkaPersistenceCassandra, we stick with it
-    val CassandraDriver     = "4.15.0"
+    val CassandraDriver     = "4.17.0"
     val AkkaPersistenceJdbc = "3.5.3"
     val AkkaManagement      = "1.1.4"
 
