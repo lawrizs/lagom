@@ -149,6 +149,7 @@ object Dependencies {
   private val akkaHttpCore      = "com.typesafe.akka" %% "akka-http-core"       % Versions.AkkaHttp
   private val akkaHttpRouteDsl  = "com.typesafe.akka" %% "akka-http"            % Versions.AkkaHttp
   private val akkaHttpSprayJson = "com.typesafe.akka" %% "akka-http-spray-json" % Versions.AkkaHttp
+  private val akkaHttp2Support  = "com.typesafe.akka" %% "akka-http2-support"   % Versions.AkkaHttp
   private val akkaParsing       = "com.typesafe.akka" %% "akka-parsing"         % Versions.AkkaHttp
 
   private val sprayJson = "io.spray" %% "spray-json" % "1.3.6"
@@ -270,6 +271,7 @@ object Dependencies {
       akkaHttpCore,
       akkaHttpRouteDsl,
       akkaHttpSprayJson,
+      akkaHttp2Support,
       akkaStreamKafka,
       akkaJackson,
       akkaParsing,
@@ -763,6 +765,7 @@ object Dependencies {
     akkaHttpCore,
     akkaHttpRouteDsl,
     akkaHttpSprayJson,
+    akkaHttp2Support,
     akkaParsing,
     guava,
     jnrFfi,
