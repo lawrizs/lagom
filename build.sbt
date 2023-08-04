@@ -1,6 +1,5 @@
 import java.net.InetSocketAddress
 import java.nio.channels.ServerSocketChannel
-
 import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys
 import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys.MultiJvm
 import com.typesafe.sbt.SbtMultiJvm.MultiJvmKeys._
@@ -9,9 +8,9 @@ import lagom.Protobuf
 import lagom.build._
 import org.scalafmt.sbt.ScalafmtPlugin
 
-//// Turn off eviction errors, introduced in sbt 1.5.0
-//ThisBuild / evictionErrorLevel := Level.Info
-//
+// Turn off eviction errors, introduced in sbt 1.5.0
+ThisBuild / evictionErrorLevel := Level.Info
+
 // Turn off "Resolving" log messages that clutter build logs
 ivyLoggingLevel in ThisBuild := UpdateLogging.Quiet
 
@@ -75,7 +74,9 @@ def common: Seq[Setting[_]] = evictionSettings ++ Seq(
     "-parameters",
     "-Xlint:unchecked",
     "-Xlint:deprecation"
-  )
+  ),
+  githubOwner := "lawrizs",
+  githubRepository := "lagom",
 )
 
 // Customise sbt-dynver's behaviour to make it work with Lagom's tags (which aren't v-prefixed)
@@ -326,7 +327,6 @@ lazy val root = (project in file("."))
   .settings(
     crossScalaVersions := Nil,
     scalaVersion := Dependencies.Versions.Scala.head,
-    PgpKeys.publishSigned := {},
     publishLocal := {},
     publishArtifact in Compile := false,
     publish := {}
@@ -335,7 +335,7 @@ lazy val root = (project in file("."))
   .settings(UnidocRoot.settings(javadslProjects, scaladslProjects, `projection-core`))
   .aggregate((javadslProjects ++ scaladslProjects ++ coreProjects ++ otherProjects ++ sbtScriptedProjects): _*)
 
-def RuntimeLibPlugins = Sonatype && HeaderPlugin && Unidoc
+def RuntimeLibPlugins = HeaderPlugin && Unidoc
 
 lazy val api = (project in file("service/core/api"))
   .configure(withLagomVersion)
@@ -531,7 +531,6 @@ lazy val `integration-tests-javadsl` = (project in file("service/javadsl/integra
   .settings(
     name := "lagom-javadsl-integration-tests",
     Dependencies.`integration-tests-javadsl`,
-    PgpKeys.publishSigned := {},
     publish / skip := true
   )
   .dependsOn(
@@ -549,7 +548,6 @@ lazy val `integration-tests-scaladsl` = (project in file("service/scaladsl/integ
   .settings(
     name := "lagom-scaladsl-integration-tests",
     Dependencies.`integration-tests-scaladsl`,
-    PgpKeys.publishSigned := {},
     publish / skip := true
   )
   .dependsOn(`server-scaladsl`, logback, `testkit-scaladsl`)
@@ -990,7 +988,6 @@ lazy val `dev-environment` = (project in file("dev"))
   .settings(
     crossScalaVersions := Nil,
     scalaVersion := Dependencies.Versions.Scala.head,
-    PgpKeys.publishSigned := {},
     publishLocal := {},
     publishArtifact in Compile := false,
     publish / skip := true
@@ -1007,7 +1004,7 @@ lazy val `reloadable-server` = (project in file("dev") / "reloadable-server")
   .dependsOn(`dev-mode-ssl-support`)
 
 lazy val `server-containers` = (project in file("dev") / "server-containers")
-  .enablePlugins(HeaderPlugin, Sonatype)
+  .enablePlugins(HeaderPlugin)
   .settings(
     common,
     mimaSettings,
@@ -1034,7 +1031,7 @@ def withLagomVersion(p: Project): Project =
 
 def sharedBuildToolSupportSetup(p: Project): Project =
   withLagomVersion(p)
-    .enablePlugins(HeaderPlugin, Sonatype)
+    .enablePlugins(HeaderPlugin)
     .settings(common, mimaSettings)
     .settings(
       name := s"lagom-${thisProject.value.id}",
@@ -1068,7 +1065,7 @@ lazy val `sbt-build-tool-support` = (project in file("dev") / "build-tool-suppor
 
 lazy val `sbt-plugin` = (project in file("dev") / "sbt-plugin")
   .settings(common, mimaSettings, scriptedSettings)
-  .enablePlugins(HeaderPlugin, Sonatype, SbtPlugin)
+  .enablePlugins(HeaderPlugin, SbtPlugin)
   .settings(
     name := "lagom-sbt-plugin",
     crossScalaVersions := Dependencies.Versions.SbtScala,
@@ -1160,7 +1157,7 @@ lazy val `sbt-plugin` = (project in file("dev") / "sbt-plugin")
   .dependsOn(`sbt-build-tool-support`)
 
 lazy val `maven-plugin` = (project in file("dev") / "maven-plugin")
-  .enablePlugins(lagom.SbtMavenPlugin, HeaderPlugin, Sonatype, Unidoc)
+  .enablePlugins(lagom.SbtMavenPlugin, HeaderPlugin, Unidoc)
   .settings(common, mimaSettings, publishMavenStyleSettings)
   .settings(
     name := "Lagom Maven Plugin",
@@ -1218,7 +1215,7 @@ val ArchetypeVariablePattern = "%([A-Z-]+)%".r
 
 def archetypeProject(archetypeName: String) =
   Project(s"maven-$archetypeName-archetype", file("dev") / "archetypes" / s"maven-$archetypeName")
-    .enablePlugins(HeaderPlugin, Sonatype)
+    .enablePlugins(HeaderPlugin)
     .settings(common, mimaSettings, sbtScalaSettings, publishMavenStyleSettings)
     .settings(
       name := s"maven-archetype-lagom-$archetypeName",
@@ -1252,7 +1249,7 @@ def archetypeProject(archetypeName: String) =
 
 lazy val `maven-java-archetype` = archetypeProject("java")
 lazy val `bill-of-materials` = (project in file("dev") / "bill-of-materials")
-  .enablePlugins(Sonatype, BillOfMaterialsPlugin)
+  .enablePlugins(BillOfMaterialsPlugin)
   .settings(common, noMima, sbtScalaSettings, publishMavenStyleSettings)
   .settings(
     name := "lagom-bom",
@@ -1260,7 +1257,7 @@ lazy val `bill-of-materials` = (project in file("dev") / "bill-of-materials")
     pomExtra := pomExtra.value :+ bomDependenciesListing.value,
   )
 lazy val `maven-dependencies` = (project in file("dev") / "maven-dependencies")
-  .enablePlugins(HeaderPlugin, Sonatype)
+  .enablePlugins(HeaderPlugin)
   .settings(common, noMima, sbtScalaSettings, publishMavenStyleSettings)
   .settings(
     name := "lagom-maven-dependencies",
@@ -1338,7 +1335,7 @@ lazy val `maven-dependencies` = (project in file("dev") / "maven-dependencies")
 
 // This project doesn't get aggregated, it is only executed by the sbt-plugin scripted dependencies
 lazy val `sbt-scripted-tools` = (project in file("dev") / "sbt-scripted-tools")
-  .enablePlugins(HeaderPlugin, Sonatype)
+  .enablePlugins(HeaderPlugin)
   .settings(common, mimaSettings)
   .settings(
     name := "lagom-sbt-scripted-tools",
@@ -1355,7 +1352,6 @@ lazy val `sbt-scripted-library` = (project in file("dev") / "sbt-scripted-librar
   .settings(runtimeLibCommon, noMima)
   .settings(
     name := "lagom-sbt-scripted-library",
-    PgpKeys.publishSigned := {},
     // `publishLocal` must work (can't use publish/skip)
     publish := {}
   )
@@ -1484,6 +1480,5 @@ lazy val `macro-testkit` = (project in file("macro-testkit"))
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect" % scalaVersion.value
     ),
-    PgpKeys.publishSigned := {},
     publish / skip := true
   )
