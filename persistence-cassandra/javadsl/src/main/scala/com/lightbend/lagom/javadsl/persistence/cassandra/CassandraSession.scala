@@ -6,19 +6,20 @@ package com.lightbend.lagom.javadsl.persistence.cassandra
 
 import java.util.concurrent.CompletionStage
 import java.util.Optional
-import java.util.{List => JList}
+import java.util.{ List => JList }
 import javax.inject.Inject
 import javax.inject.Singleton
 import akka.actor.ActorSystem
 import akka.event.Logging
-import akka.stream.alpakka.cassandra.scaladsl.{CassandraSession => AkkaScalaCassandraSession}
-import akka.stream.alpakka.cassandra.javadsl.{CassandraSession => AkkaJavaCassandraSession}
+import akka.stream.alpakka.cassandra.scaladsl.{ CassandraSession => AkkaScalaCassandraSession }
+import akka.stream.alpakka.cassandra.javadsl.{ CassandraSession => AkkaJavaCassandraSession }
 import akka.stream.javadsl
 import akka.Done
 import akka.NotUsed
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.cql._
-import com.lightbend.lagom.internal.persistence.cassandra.{CassandraKeyspaceConfig, CassandraReadSideSessionProvider}
+import com.lightbend.lagom.internal.persistence.cassandra.CassandraKeyspaceConfig
+import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSessionProvider
 
 import scala.annotation.varargs
 import scala.concurrent.ExecutionContext

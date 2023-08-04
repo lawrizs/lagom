@@ -16,7 +16,6 @@ import play.api.Configuration
 import play.api.Environment
 import play.api.inject._
 
-
 /**
  * Guice module for the Persistence API.
  */
@@ -36,7 +35,6 @@ private[lagom] object CassandraPersistenceModule {
   class InitServiceLocatorHolder @Inject() (system: ActorSystem, injector: Injector) {
     // Guice doesn't support this, but other DI frameworks do.
     @PostConstruct
-    def init(): Unit = {
-    }
+    def init(): Unit = {}
   }
 }

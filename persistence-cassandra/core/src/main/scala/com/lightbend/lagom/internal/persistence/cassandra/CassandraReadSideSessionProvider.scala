@@ -8,7 +8,7 @@ import akka.Done
 import akka.actor.ActorSystem
 import akka.actor.ExtendedActorSystem
 import akka.event.Logging
-import akka.stream.alpakka.cassandra.scaladsl.{CassandraSession => AkkaScaladslCassandraSession}
+import akka.stream.alpakka.cassandra.scaladsl.{ CassandraSession => AkkaScaladslCassandraSession }
 import akka.stream.alpakka.cassandra.CqlSessionProvider
 import com.datastax.oss.driver.api.core.CqlSession
 
@@ -27,7 +27,6 @@ private[lagom] object CassandraReadSideSessionProvider {
 
     import scala.collection.JavaConverters._ // implicit asScala conversion
     import scala.compat.java8.FutureConverters._
-
 
     val cfg = system.settings.config.getConfig("lagom.persistence.read-side.cassandra")
     val replicationStrategy: String = getReplicationStrategy(
@@ -78,15 +77,17 @@ private[lagom] object CassandraReadSideSessionProvider {
   }
 
   def getReplicationStrategy(
-                                    strategy: String,
-                                    replicationFactor: Int,
-                                    dataCenterReplicationFactors: Seq[String]): String = {
+      strategy: String,
+      replicationFactor: Int,
+      dataCenterReplicationFactors: Seq[String]
+  ): String = {
 
     def getDataCenterReplicationFactorList(dcrfList: Seq[String]): String = {
       val result: Seq[String] = dcrfList match {
         case null | Nil =>
           throw new IllegalArgumentException(
-            "data-center-replication-factors cannot be empty when using NetworkTopologyStrategy.")
+            "data-center-replication-factors cannot be empty when using NetworkTopologyStrategy."
+          )
         case dcrfs =>
           dcrfs.map { dataCenterWithReplicationFactor =>
             dataCenterWithReplicationFactor.split(":") match {
@@ -94,7 +95,8 @@ private[lagom] object CassandraReadSideSessionProvider {
                 s"'$dataCenter':$replicationFactor"
               case msg =>
                 throw new IllegalArgumentException(
-                  s"A data-center-replication-factor must have the form [dataCenterName:replicationFactor] but was: $msg.")
+                  s"A data-center-replication-factor must have the form [dataCenterName:replicationFactor] but was: $msg."
+                )
             }
           }
       }
