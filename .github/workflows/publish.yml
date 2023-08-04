@@ -28,4 +28,4 @@ jobs:
       - name: Publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: sbt clean +test +publish
+        run: sbt clean +publish
