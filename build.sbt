@@ -9,9 +9,9 @@ import lagom.Protobuf
 import lagom.build._
 import org.scalafmt.sbt.ScalafmtPlugin
 
-// Turn off eviction errors, introduced in sbt 1.5.0
-ThisBuild / evictionErrorLevel := Level.Info
-
+//// Turn off eviction errors, introduced in sbt 1.5.0
+//ThisBuild / evictionErrorLevel := Level.Info
+//
 // Turn off "Resolving" log messages that clutter build logs
 ivyLoggingLevel in ThisBuild := UpdateLogging.Quiet
 
