@@ -48,7 +48,8 @@ object Dependencies {
     val MavenResolver        = "1.4.1"
     val Netty                = "4.1.87.Final"
     val NettyReactiveStreams = "2.0.8"
-    val Kafka                = "2.1.1"
+    // Compatibility matrix for alpakka-kafka https://doc.akka.io/docs/alpakka-kafka/current/home.html
+    val Kafka = "2.7.2"
     // adapt links in (java/scala)/KafkaClient.md for minor version changes
     val AlpakkaKafka  = "2.1.1"
     val Curator       = "2.12.0"
