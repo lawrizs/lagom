@@ -227,6 +227,7 @@ private[lagom] object Servers {
             .builder()
             .withConfigLoader(DriverConfigLoader.programmaticBuilder().build())
             .addContactPoints(contactPoint)
+            .withLocalDatacenter("datacenter1")
             .build()
 
           println() // we don't want to print the message on the same line of the dots...
