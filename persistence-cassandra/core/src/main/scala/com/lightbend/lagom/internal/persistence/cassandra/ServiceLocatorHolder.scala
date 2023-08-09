@@ -33,7 +33,9 @@ private[lagom] object ServiceLocatorHolder extends ExtensionId[ServiceLocatorHol
   override def createExtension(system: ExtendedActorSystem): ServiceLocatorHolder =
     new ServiceLocatorHolder(system)
 
-  val TIMEOUT = 2.seconds
+  // Using 10 seconds as timeout, to accommodate the following issue:
+  // https://github.com/lagom/lagom/issues/1667
+  val TIMEOUT = 10.seconds
 }
 
 private[lagom] class ServiceLocatorHolder(system: ExtendedActorSystem) extends Extension {
