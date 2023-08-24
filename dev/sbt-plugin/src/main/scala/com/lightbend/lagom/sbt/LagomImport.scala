@@ -56,6 +56,9 @@ object LagomImport extends LagomImportCompat {
     "com.novocode" % "junit-interface" % "0.11" % Test
   )
 
+  /** Specify all Akka dependencies in Lagom-specific versions */
+  val lagomAkkaDeps = AkkaDeps.lagomAkkaDeps
+
   // for forked tests, necessary for Cassandra
   def lagomForkedTestSettings: Seq[Setting[_]] = Seq(
     fork in Test := true,
