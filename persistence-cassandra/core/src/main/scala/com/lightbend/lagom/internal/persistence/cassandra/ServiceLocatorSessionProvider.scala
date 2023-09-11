@@ -5,7 +5,8 @@
 package com.lightbend.lagom.internal.persistence.cassandra
 
 import akka.actor.ActorSystem
-import akka.stream.alpakka.cassandra.{CqlSessionProvider, DriverConfigLoaderFromConfig}
+import akka.stream.alpakka.cassandra.CqlSessionProvider
+import akka.stream.alpakka.cassandra.DriverConfigLoaderFromConfig
 import com.datastax.oss.driver.api.core.`type`.reflect.GenericType
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader
 import com.datastax.oss.driver.api.core.context.DriverContext
@@ -13,8 +14,10 @@ import com.datastax.oss.driver.api.core.cql.BatchStatement
 import com.datastax.oss.driver.api.core.metadata.Metadata
 import com.datastax.oss.driver.api.core.metrics.Metrics
 import com.datastax.oss.driver.api.core.session.Request
-import com.datastax.oss.driver.api.core.{CqlIdentifier, CqlSession}
-import com.typesafe.config.{Config, ConfigFactory}
+import com.datastax.oss.driver.api.core.CqlIdentifier
+import com.datastax.oss.driver.api.core.CqlSession
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import play.api.Logger
 
 import java.lang
@@ -22,7 +25,8 @@ import java.util.Optional
 import java.util.concurrent.CompletionStage
 import scala.collection.immutable
 import scala.compat.java8.FutureConverters.CompletionStageOps
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 import scala.collection.JavaConverters._
 
@@ -44,34 +48,36 @@ private[lagom] final class ServiceLocatorSessionProvider(system: ActorSystem, co
    * CosmosDB does not handle batch statements, giving errors like "Partition key delete inside Batch request is not supported yet",
    * some coming from akka-persistence-cassandra. Here, we customize Cql session to handle Batch queries manually */
   private def customizeCqlSession(session: CqlSession): CqlSession = new CqlSession {
-    override def getName: String = session.getName
-    override def getMetadata: Metadata = session.getMetadata
+    override def getName: String                  = session.getName
+    override def getMetadata: Metadata            = session.getMetadata
     override def isSchemaMetadataEnabled: Boolean = session.isSchemaMetadataEnabled
-    override def setSchemaMetadataEnabled(newValue: lang.Boolean): CompletionStage[Metadata] = session.setSchemaMetadataEnabled(newValue)
-    override def refreshSchemaAsync(): CompletionStage[Metadata] = session.refreshSchemaAsync()
+    override def setSchemaMetadataEnabled(newValue: lang.Boolean): CompletionStage[Metadata] =
+      session.setSchemaMetadataEnabled(newValue)
+    override def refreshSchemaAsync(): CompletionStage[Metadata]            = session.refreshSchemaAsync()
     override def checkSchemaAgreementAsync(): CompletionStage[lang.Boolean] = session.checkSchemaAgreementAsync()
-    override def getContext: DriverContext = session.getContext
-    override def getKeyspace: Optional[CqlIdentifier] = session.getKeyspace
-    override def getMetrics: Optional[Metrics] = session.getMetrics
-    override def closeFuture(): CompletionStage[Void] = session.closeFuture()
-    override def closeAsync(): CompletionStage[Void] = session.closeAsync()
-    override def forceCloseAsync(): CompletionStage[Void] = session.forceCloseAsync()
-    override def execute[RequestT <: Request, ResultT](request: RequestT, resultType: GenericType[ResultT]): ResultT = request match {
+    override def getContext: DriverContext                                  = session.getContext
+    override def getKeyspace: Optional[CqlIdentifier]                       = session.getKeyspace
+    override def getMetrics: Optional[Metrics]                              = session.getMetrics
+    override def closeFuture(): CompletionStage[Void]                       = session.closeFuture()
+    override def closeAsync(): CompletionStage[Void]                        = session.closeAsync()
+    override def forceCloseAsync(): CompletionStage[Void]                   = session.forceCloseAsync()
+    override def execute[RequestT <: Request, ResultT](request: RequestT, resultType: GenericType[ResultT]): ResultT =
+      request match {
 
-      /* In CosmosDB compatibility mode, handle batch statements, one by one */
-      case b: BatchStatement if b.size()>0 && isCosmosDBCompat =>
-        val stmts = b.asScala
-        val ress = stmts.map(s => session.execute(s, resultType)) // Run queries ony by one
-        val res = ress.find(r => Option(r).isDefined) // Take the result of the 1st query, which is not null
+        /* In CosmosDB compatibility mode, handle batch statements, one by one */
+        case b: BatchStatement if b.size() > 0 && isCosmosDBCompat =>
+          val stmts = b.asScala
+          val ress  = stmts.map(s => session.execute(s, resultType)) // Run queries ony by one
+          val res   = ress.find(r => Option(r).isDefined) // Take the result of the 1st query, which is not null
 
-        res match {
-          case Some(r) => r // Return the result of the 1st query
-          case _ => null.asInstanceOf[ResultT] // Return null, in other cases (should not happen)
-        }
+          res match {
+            case Some(r) => r                          // Return the result of the 1st query
+            case _       => null.asInstanceOf[ResultT] // Return null, in other cases (should not happen)
+          }
 
-      /* Handle all other statements normally */
-      case _ => session.execute(request, resultType)
-    }
+        /* Handle all other statements normally */
+        case _ => session.execute(request, resultType)
+      }
   }
 
   /** Build the CqlSession from the provided configs and apply needed customizations */
