@@ -23,14 +23,19 @@ abstract class JsonSerializerRegistry {
    */
   def migrations: Map[String, JsonMigration] = Map.empty
 
+  /** [Optional] Define auxiliary Protobuf serializers (if any), which shall be used instead of JSON.
+   * When defined, this serializer takes priority over the Play-JSON serializer */
+  def protobufSerializers: immutable.Seq[ProtobufSerializer[_]] = immutable.Seq.empty
+
   /**
    * Concatenate the serializers and migrations of this registry with another registry to form a new registry.
    */
   final def ++(other: JsonSerializerRegistry): JsonSerializerRegistry = {
     val self = this
     new JsonSerializerRegistry {
-      override def serializers = self.serializers ++ other.serializers
-      override def migrations  = self.migrations ++ other.migrations
+      override def serializers         = self.serializers ++ other.serializers
+      override def migrations          = self.migrations ++ other.migrations
+      override def protobufSerializers = self.protobufSerializers ++ other.protobufSerializers
     }
   }
 }

@@ -176,6 +176,8 @@ object Dependencies {
   private val playFileWatch =
     ("com.lightbend.play" %% "play-file-watch" % Versions.PlayFileWatch).excludeAll(excludeSlf4j: _*)
 
+  private val scalaPb  = ("com.thesamet.scalapb" %% "scalapb-runtime"   % scalapb.compiler.Version.scalapbVersion).excludeAll(excludeSlf4j: _*)
+
   private val pcollections          = "org.pcollections" % "pcollections" % Versions.PCollections
   private val jsr250                = "javax.annotation" % "jsr250-api" % "1.0"
   private val junit                 = "junit" % "junit" % Versions.JUnit
@@ -571,7 +573,8 @@ object Dependencies {
     scalaJava8Compat,
     pcollections,
     scalaXml               % Test,
-    scalaParserCombinators % Test
+    scalaParserCombinators % Test,
+    scalaPb
     // explicitly depend on particular versions of jackson
   ) ++ jacksonFamily ++ Seq(
     // explicitly depend on particular versions of guava
