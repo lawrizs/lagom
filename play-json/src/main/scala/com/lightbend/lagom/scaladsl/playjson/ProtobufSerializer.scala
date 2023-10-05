@@ -15,8 +15,11 @@ object ProtobufSerializer {
    * Create a serializer for the PlayJsonSerializationRegistry, describes how a specific class can be read and written
    * as a protobuf binary message
    */
-  def apply[T <: GeneratedMessage : GeneratedMessageCompanion : ClassTag]: ProtobufSerializer[T] =
-    ProtobufSerializerImpl(implicitly[ClassTag[T]].runtimeClass.asInstanceOf[Class[T]], implicitly[GeneratedMessageCompanion[T]])
+  def apply[T <: GeneratedMessage: GeneratedMessageCompanion: ClassTag]: ProtobufSerializer[T] =
+    ProtobufSerializerImpl(
+      implicitly[ClassTag[T]].runtimeClass.asInstanceOf[Class[T]],
+      implicitly[GeneratedMessageCompanion[T]]
+    )
 
   /**
    * Create a serializer for the PlayJsonSerializationRegistry, describes how a specific class can be read and written
