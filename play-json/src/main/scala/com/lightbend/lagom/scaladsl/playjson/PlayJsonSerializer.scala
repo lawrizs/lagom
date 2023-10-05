@@ -9,7 +9,6 @@ import java.io.ByteArrayOutputStream
 import java.nio.charset.StandardCharsets
 import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
-
 import akka.actor.ExtendedActorSystem
 import akka.event.Logging
 import akka.serialization.BaseSerializer
@@ -49,6 +48,13 @@ private[lagom] final class PlayJsonSerializer(val system: ExtendedActorSystem, r
     }.toMap
   }
 
+  /** maps a manifestClassName to the protobuf serializer provided by the user */
+  private val protobufSerializers: Map[String, ProtobufSerializer[_]] = {
+    registry.protobufSerializers.map { entry =>
+      entry.entityClass.getName -> entry
+    }.toMap
+  }
+
   private def migrations: Map[String, JsonMigration] = registry.migrations
 
   override def manifest(o: AnyRef): String = {
@@ -64,17 +70,29 @@ private[lagom] final class PlayJsonSerializer(val system: ExtendedActorSystem, r
 
     val (_, manifestClassName: String) = parseManifest(manifest(o))
 
-    val format = formatters.getOrElse(
-      manifestClassName,
-      throw new RuntimeException(s"Missing play-json serializer for [$manifestClassName]")
-    )
+    // Try to find a protobuf serializer first
+    val protoBufSerializerOpt = protobufSerializers.get(manifestClassName)
 
-    val json               = format.writes(o)
-    val bytes: Array[Byte] = Json.stringify(json).getBytes(charset)
+    // Serialize to bytes
+    val result = protoBufSerializerOpt match {
+      case Some(protoSerializer) =>
+        // Convert a protobuf message to bytes
+        protoSerializer.protobufCompanion.toByteArray(o.asInstanceOf[Nothing])
 
-    val result = serializers(manifestClassName) match {
-      case JsonSerializer.CompressedJsonSerializerImpl(_, _) if bytes.length > compressLargerThan => compress(bytes)
-      case _                                                                                      => bytes
+      case None =>
+        // Handle with the standard
+        val format = formatters.getOrElse(
+          manifestClassName,
+          throw new RuntimeException(s"Missing play-json serializer for [$manifestClassName]")
+        )
+
+        val json               = format.writes(o)
+        val bytes: Array[Byte] = Json.stringify(json).getBytes(charset)
+
+        serializers(manifestClassName) match {
+          case JsonSerializer.CompressedJsonSerializerImpl(_, _) if bytes.length > compressLargerThan => compress(bytes)
+          case _                                                                                      => bytes
+        }
     }
 
     if (isDebugEnabled) {
@@ -95,68 +113,79 @@ private[lagom] final class PlayJsonSerializer(val system: ExtendedActorSystem, r
 
     val (fromVersion: Int, manifestClassName: String) = parseManifest(manifest)
 
-    val renameMigration = migrations.get(manifestClassName)
+    // Try to find a protobuf serializer first
+    val protoBufSerializerOpt = protobufSerializers.get(manifestClassName)
 
-    val migratedManifest = renameMigration match {
-      case Some(migration) if fromVersion < migration.currentVersion =>
-        migration.transformClassName(fromVersion, manifestClassName)
-      case Some(migration) if fromVersion == migration.currentVersion =>
-        manifestClassName
-      case Some(migration) if fromVersion <= migration.supportedForwardVersion =>
-        migration.transformClassName(fromVersion, manifestClassName)
-      case Some(migration) if fromVersion > migration.supportedForwardVersion =>
-        throw new IllegalStateException(
-          s"Migration supported version ${migration.supportedForwardVersion} is " +
-            s"behind version $fromVersion of deserialized type [$manifestClassName]"
-        )
-      case None => manifestClassName
-    }
+    // Deserialize using protobuf or JSON deserializer
+    val result: AnyRef = protoBufSerializerOpt match {
+      case Some(protoSerializer) =>
+        protoSerializer.protobufCompanion.parseFrom(storedBytes).asInstanceOf[AnyRef]
 
-    val transformMigration = migrations.get(migratedManifest)
+      case None =>
+        val renameMigration = migrations.get(manifestClassName)
 
-    val format = formatters.getOrElse(
-      migratedManifest,
-      throw new RuntimeException(
-        s"Missing play-json serializer for [$migratedManifest], " +
-          s"defined are [${formatters.keys.mkString(", ")}]"
-      )
-    )
-
-    val bytes =
-      if (isGZipped(storedBytes))
-        decompress(storedBytes)
-      else
-        storedBytes
-
-    val json = Json.parse(bytes) match {
-      case jsValue: JsValue => jsValue
-      case other =>
-        throw new RuntimeException(
-          "Unexpected serialized json data. " +
-            s"Expected a JSON object, but was [${other.getClass.getName}]"
-        )
-    }
-
-    val migratedJson = transformMigration match {
-      case None                                                       => json
-      case Some(migration) if fromVersion == migration.currentVersion => json
-      case Some(migration) if fromVersion <= migration.supportedForwardVersion =>
-        json match {
-          case js: JsObject =>
-            migration.transform(fromVersion, js)
-          case js: JsValue =>
-            migration.transformValue(fromVersion, js)
+        val migratedManifest = renameMigration match {
+          case Some(migration) if fromVersion < migration.currentVersion =>
+            migration.transformClassName(fromVersion, manifestClassName)
+          case Some(migration) if fromVersion == migration.currentVersion =>
+            manifestClassName
+          case Some(migration) if fromVersion <= migration.supportedForwardVersion =>
+            migration.transformClassName(fromVersion, manifestClassName)
+          case Some(migration) if fromVersion > migration.supportedForwardVersion =>
+            throw new IllegalStateException(
+              s"Migration supported version ${migration.supportedForwardVersion} is " +
+                s"behind version $fromVersion of deserialized type [$manifestClassName]"
+            )
+          case None => manifestClassName
         }
-    }
 
-    val result = format.reads(migratedJson) match {
-      case JsSuccess(obj, _) => obj
-      case JsError(errors) =>
-        throw new JsonSerializationFailed(
-          s"Failed to de-serialize bytes with manifest [$migratedManifest]",
-          errors,
-          migratedJson
+        val transformMigration = migrations.get(migratedManifest)
+
+        val format = formatters.getOrElse(
+          migratedManifest,
+          throw new RuntimeException(
+            s"Missing play-json serializer for [$migratedManifest], " +
+              s"defined are [${formatters.keys.mkString(", ")}]"
+          )
         )
+
+        // Get the bytes, zipped, or not zipped
+        val bytes =
+          if (isGZipped(storedBytes))
+            decompress(storedBytes)
+          else
+            storedBytes
+
+        val json = Json.parse(bytes) match {
+          case jsValue: JsValue => jsValue
+          case other =>
+            throw new RuntimeException(
+              "Unexpected serialized json data. " +
+                s"Expected a JSON object, but was [${other.getClass.getName}]"
+            )
+        }
+
+        val migratedJson = transformMigration match {
+          case None                                                       => json
+          case Some(migration) if fromVersion == migration.currentVersion => json
+          case Some(migration) if fromVersion <= migration.supportedForwardVersion =>
+            json match {
+              case js: JsObject =>
+                migration.transform(fromVersion, js)
+              case js: JsValue =>
+                migration.transformValue(fromVersion, js)
+            }
+        }
+
+        format.reads(migratedJson) match {
+          case JsSuccess(obj, _) => obj
+          case JsError(errors) =>
+            throw new JsonSerializationFailed(
+              s"Failed to de-serialize bytes with manifest [$migratedManifest]",
+              errors,
+              migratedJson
+            )
+        }
     }
 
     if (isDebugEnabled) {
@@ -166,7 +195,7 @@ private[lagom] final class PlayJsonSerializer(val system: ExtendedActorSystem, r
         "Deserialization of [{}] took [{}] µs, size [{}] bytes",
         manifest,
         durationMicros,
-        bytes.length
+        storedBytes.length
       )
     }
     result
