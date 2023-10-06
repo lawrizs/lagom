@@ -14,6 +14,8 @@ import akka.event.Logging
 import akka.serialization.BaseSerializer
 import akka.serialization.SerializerWithStringManifest
 import play.api.libs.json._
+import scalapb.GeneratedMessage
+import scalapb.GeneratedMessageCompanion
 
 import scala.annotation.tailrec
 
@@ -77,7 +79,8 @@ private[lagom] final class PlayJsonSerializer(val system: ExtendedActorSystem, r
     val result = protoBufSerializerOpt match {
       case Some(protoSerializer) =>
         // Convert a protobuf message to bytes
-        protoSerializer.protobufCompanion.toByteArray(o.asInstanceOf[Nothing])
+        val companion = protoSerializer.protobufCompanion.asInstanceOf[GeneratedMessageCompanion[GeneratedMessage]]
+        companion.toByteArray(o.asInstanceOf[GeneratedMessage])
 
       case None =>
         // Handle with the standard

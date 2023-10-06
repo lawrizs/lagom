@@ -49,7 +49,8 @@ object JsonSerializerRegistry {
     SerializerDetails(
       "lagom-play-json",
       new PlayJsonSerializer(system, registry),
-      registry.serializers.map(_.entityClass)
+      registry.serializers.map(_.entityClass) ++
+        registry.protobufSerializers.map(_.entityClass) // Add entity classes from the protobuf serializers as well
     )
   }
 
