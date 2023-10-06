@@ -18,6 +18,7 @@ import scalapb.GeneratedMessage
 import scalapb.GeneratedMessageCompanion
 
 import scala.annotation.tailrec
+import scala.util.Try
 
 /**
  * Internal API
@@ -80,7 +81,14 @@ private[lagom] final class PlayJsonSerializer(val system: ExtendedActorSystem, r
       case Some(protoSerializer) =>
         // Convert a protobuf message to bytes
         val companion = protoSerializer.protobufCompanion.asInstanceOf[GeneratedMessageCompanion[GeneratedMessage]]
-        companion.toByteArray(o.asInstanceOf[GeneratedMessage])
+        val bytes     = companion.toByteArray(o.asInstanceOf[GeneratedMessage])
+
+        // Compress, or pass raw bytes
+        protoSerializer match {
+          case ProtobufSerializer.CompressedProtobufSerializerImpl(_, _) if bytes.length > compressLargerThan =>
+            compress(bytes)
+          case _ => bytes
+        }
 
       case None =>
         // Handle with the standard
@@ -122,7 +130,15 @@ private[lagom] final class PlayJsonSerializer(val system: ExtendedActorSystem, r
     // Deserialize using protobuf or JSON deserializer
     val result: AnyRef = protoBufSerializerOpt match {
       case Some(protoSerializer) =>
-        protoSerializer.protobufCompanion.parseFrom(storedBytes).asInstanceOf[AnyRef]
+        // Get the bytes, zipped, or not zipped
+        val bytes =
+          if (isGZipped(storedBytes))
+            Try { decompress(storedBytes) }.getOrElse(storedBytes) // Back-off to raw bytes in case of failutes
+          else
+            storedBytes
+
+        // Deserialize using protobuf
+        protoSerializer.protobufCompanion.parseFrom(bytes).asInstanceOf[AnyRef]
 
       case None =>
         val renameMigration = migrations.get(manifestClassName)

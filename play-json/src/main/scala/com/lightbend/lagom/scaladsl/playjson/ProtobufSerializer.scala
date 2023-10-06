@@ -18,7 +18,22 @@ object ProtobufSerializer {
   def apply[T <: GeneratedMessage: ClassTag](protobufCompanion: GeneratedMessageCompanion[T]): ProtobufSerializer[T] =
     ProtobufSerializerImpl(implicitly[ClassTag[T]].runtimeClass.asInstanceOf[Class[T]], protobufCompanion)
 
+  /**
+   * Create a serializer for the PlayJsonSerializationRegistry that will apply a GZIP compression when the generated
+   * JSON content is larger than <code>compress-larger-than</code> bytes, describes how a specific class can be read
+   * and written as a protobuf binary message.
+   */
+  def compressed[T <: GeneratedMessage: ClassTag](
+      protobufCompanion: GeneratedMessageCompanion[T]
+  ): ProtobufSerializer[T] =
+    CompressedProtobufSerializerImpl(implicitly[ClassTag[T]].runtimeClass.asInstanceOf[Class[T]], protobufCompanion)
+
   private[lagom] case class ProtobufSerializerImpl[T <: GeneratedMessage](
+      entityClass: Class[T],
+      protobufCompanion: GeneratedMessageCompanion[T]
+  ) extends ProtobufSerializer[T]
+
+  private[lagom] case class CompressedProtobufSerializerImpl[T <: GeneratedMessage](
       entityClass: Class[T],
       protobufCompanion: GeneratedMessageCompanion[T]
   ) extends ProtobufSerializer[T]
