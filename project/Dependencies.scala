@@ -954,7 +954,9 @@ object Dependencies {
     scalaXml,
     jnrConstants,
     jnrPosix,
-    "io.netty" % "netty-handler" % Versions.Netty
+    "io.netty" % "netty-handler" % Versions.Netty,
+    // Dependencies required by CosmosDB extensions
+    cassandraDriverCore
   )
 
   val `persistence-cassandra-javadsl` = libraryDependencies ++= Seq(
