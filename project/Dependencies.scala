@@ -30,9 +30,7 @@ object Dependencies {
 
     val AkkaPersistenceCassandra = "1.0.6"
     // this is the version used in AkkaPersistenceCassandra, we stick with it
-    val CassandraDriver           = "4.17.0"
-    val CassandraDriverExtensions = "1.1.2"
-
+    val CassandraDriver     = "4.17.0"
     val AkkaPersistenceJdbc = "3.5.3"
     val AkkaManagement      = "1.1.4"
 
@@ -106,9 +104,6 @@ object Dependencies {
   private val h2                     = "com.h2database" % "h2" % "1.4.192"
   private val cassandraDriverCore =
     ("com.datastax.oss" % "java-driver-core" % Versions.CassandraDriver).excludeAll(excludeSlf4j: _*)
-  private val cassandraDriverExtensions =
-    ("com.azure" % "azure-cosmos-cassandra-driver-4-extensions" % Versions.CassandraDriverExtensions)
-      .excludeAll(excludeSlf4j: _*)
 
   private val akkaActor              = "com.typesafe.akka" %% "akka-actor" % Versions.Akka
   private val akkaRemote             = "com.typesafe.akka" %% "akka-remote" % Versions.Akka
@@ -253,7 +248,6 @@ object Dependencies {
     Seq(
       "aopalliance" % "aopalliance" % "1.0",
       cassandraDriverCore,
-      cassandraDriverExtensions,
       akkaPersistenceJdbc,
       jffi,
       jnrConstants,
@@ -960,10 +954,7 @@ object Dependencies {
     scalaXml,
     jnrConstants,
     jnrPosix,
-    "io.netty" % "netty-handler" % Versions.Netty,
-    // Embed the fixed driver version
-    cassandraDriverCore,
-    cassandraDriverExtensions
+    "io.netty" % "netty-handler" % Versions.Netty
   )
 
   val `persistence-cassandra-javadsl` = libraryDependencies ++= Seq(
@@ -1143,7 +1134,6 @@ object Dependencies {
   val `server-containers` = libraryDependencies ++= Seq(
     // This is used in the code to check if the embedded cassandra server is started
     cassandraDriverCore,
-    cassandraDriverExtensions
   )
 
   val `build-tool-support` = libraryDependencies ++= Seq(
