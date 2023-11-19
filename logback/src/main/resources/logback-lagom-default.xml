@@ -29,6 +29,9 @@
   <!-- Turn down Kafka noise -->
   <logger name="org.apache.kafka" level="WARN" />
 
+  <!-- Turn on CosmosDB retry tracing (when CosmosDB is used) -->
+  <logger name="com.azure.cosmos.cassandra.CosmosRetryPolicy" level="TRACE" />
+
   <root level="INFO">
     <appender-ref ref="ASYNCSTDOUT" />
   </root>
