@@ -5,11 +5,11 @@
 package com.lightbend.lagom.scaladsl.persistence.cassandra
 
 import akka.Done
-import com.datastax.oss.driver.api.core.cql.BoundStatement
-import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler
+import com.datastax.oss.driver.api.core.cql.BatchStatement
 import com.lightbend.lagom.scaladsl.persistence.AggregateEvent
 import com.lightbend.lagom.scaladsl.persistence.AggregateEventTag
 import com.lightbend.lagom.scaladsl.persistence.EventStreamElement
+import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler
 
 import scala.collection.immutable
 import scala.concurrent.Future
@@ -55,7 +55,7 @@ object CassandraReadSide {
      * @return This builder for fluent invocation
      */
     def setEventHandler[E <: Event: ClassTag](
-        handler: EventStreamElement[E] => Future[immutable.Seq[BoundStatement]]
+        handler: EventStreamElement[E] => Future[immutable.Seq[BatchStatement]]
     ): ReadSideHandlerBuilder[Event]
 
     /**

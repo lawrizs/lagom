@@ -6,16 +6,16 @@ package com.lightbend.lagom.internal.scaladsl.persistence.cassandra
 
 import akka.Done
 import akka.actor.ActorSystem
-import com.datastax.oss.driver.api.core.cql.BoundStatement
+import com.datastax.oss.driver.api.core.cql.BatchStatement
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetStore
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraReadSideSettings
+import com.lightbend.lagom.scaladsl.persistence.AggregateEvent
+import com.lightbend.lagom.scaladsl.persistence.AggregateEventTag
+import com.lightbend.lagom.scaladsl.persistence.EventStreamElement
 import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler
 import com.lightbend.lagom.scaladsl.persistence.cassandra.CassandraReadSide.ReadSideHandlerBuilder
 import com.lightbend.lagom.scaladsl.persistence.cassandra.CassandraReadSide
 import com.lightbend.lagom.scaladsl.persistence.cassandra.CassandraSession
-import com.lightbend.lagom.scaladsl.persistence.AggregateEvent
-import com.lightbend.lagom.scaladsl.persistence.AggregateEventTag
-import com.lightbend.lagom.scaladsl.persistence.EventStreamElement
 
 import scala.collection.immutable
 import scala.concurrent.Future
@@ -51,7 +51,7 @@ private[lagom] final class CassandraReadSideImpl(
       }
 
       override def setEventHandler[E <: Event: ClassTag](
-          handler: EventStreamElement[E] => Future[immutable.Seq[BoundStatement]]
+          handler: EventStreamElement[E] => Future[immutable.Seq[BatchStatement]]
       ): ReadSideHandlerBuilder[Event] = {
         val eventClass = implicitly[ClassTag[E]].runtimeClass.asInstanceOf[Class[Event]]
         handlers += (eventClass -> handler.asInstanceOf[Handler[Event]])

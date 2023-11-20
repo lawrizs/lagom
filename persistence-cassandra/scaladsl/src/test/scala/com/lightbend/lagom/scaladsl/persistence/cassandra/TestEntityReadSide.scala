@@ -6,6 +6,8 @@ package com.lightbend.lagom.scaladsl.persistence.cassandra
 
 import akka.Done
 import akka.actor.ActorSystem
+import com.datastax.oss.driver.api.core.cql.BatchStatement
+import com.datastax.oss.driver.api.core.cql.BatchType
 import com.datastax.oss.driver.api.core.cql.BoundStatement
 import com.datastax.oss.driver.api.core.cql.PreparedStatement
 import com.lightbend.lagom.scaladsl.persistence.ReadSideProcessor.ReadSideHandler
@@ -38,7 +40,7 @@ object TestEntityReadSide {
         }
       }
 
-      def updateCount(element: EventStreamElement[TestEntity.Appended]): Future[immutable.Seq[BoundStatement]] = {
+      def updateCount(element: EventStreamElement[TestEntity.Appended]): Future[immutable.Seq[BatchStatement]] = {
         session.selectOne("SELECT count FROM testcounts WHERE id = ?", element.entityId).map { maybeRow =>
           val count = {
             maybeRow match {
@@ -46,7 +48,10 @@ object TestEntityReadSide {
               case None      => 0L
             }
           }
-          Vector(writeStmt.bind(java.lang.Long.valueOf(count + 1L), element.entityId))
+          Vector(
+            BatchStatement
+              .newInstance(BatchType.UNLOGGED, writeStmt.bind(java.lang.Long.valueOf(count + 1L), element.entityId))
+          )
         }
       }
 

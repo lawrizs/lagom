@@ -40,19 +40,26 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
     extends ReadSideHandler[Event] {
   private val log = LoggerFactory.getLogger(this.getClass)
 
-  protected def invoke(handler: Handler, event: EventStreamElement[Event]): Future[immutable.Seq[BoundStatement]]
+  protected def invoke(handler: Handler, event: EventStreamElement[Event]): Future[immutable.Seq[BatchStatement]]
 
   protected def offsetStatement(offset: Offset): BoundStatement
 
   override def handle(): Flow[EventStreamElement[Event], Done, NotUsed] = {
-    def executeStatements(statements: Seq[BoundStatement]): Future[Done] = {
+    def executeBatches(statements: Seq[BatchStatement]): Future[Done] = {
       // statements is never empty, there is at least the store offset statement
       // for simplicity we just use batch api (even if there is only one)
-      val batch = BatchStatement
-        .newInstance(BatchType.UNLOGGED)
-        .setExecutionProfileName(readSideSettings.writeProfile)
-        .addAll(statements.asJava)
-      session.executeWriteBatch(batch)
+      Future
+        .sequence(statements.map(stmt => {
+          // Generate a statement to execute, by setting the write profile
+          val batch = BatchStatement
+            .builder(stmt)
+            .setExecutionProfileName(readSideSettings.writeProfile)
+            .build()
+
+          // Execute the batch
+          session.executeWriteBatch(batch)
+        }))
+        .map(_ => Done)
     }
 
     Flow[EventStreamElement[Event]]
@@ -72,10 +79,10 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
 
         for {
           statements <- invoke(handler, elem)
-          _          <- executeStatements(statements)
+          _          <- executeBatches(statements)
           // important: only commit offset once read view
           // statements has completed successfully
-          _ <- executeStatements(offsetStatement(elem.offset) :: Nil)
+          _ <- session.executeWrite(offsetStatement(elem.offset))
         } yield Done
       }
       .withAttributes(ActorAttributes.dispatcher(dispatcher))
@@ -86,10 +93,10 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
  * Internal API
  */
 private[cassandra] object CassandraAutoReadSideHandler {
-  type Handler[Event] = (EventStreamElement[_ <: Event]) => Future[immutable.Seq[BoundStatement]]
+  type Handler[Event] = (EventStreamElement[_ <: Event]) => Future[immutable.Seq[BatchStatement]]
 
   def emptyHandler[Event]: Handler[Event] =
-    (_) => Future.successful(immutable.Seq.empty[BoundStatement])
+    (_) => Future.successful(immutable.Seq.empty[BatchStatement])
 }
 
 /**
@@ -119,9 +126,9 @@ private[cassandra] final class CassandraAutoReadSideHandler[Event <: AggregateEv
   protected override def invoke(
       handler: Handler[Event],
       element: EventStreamElement[Event]
-  ): Future[immutable.Seq[BoundStatement]] =
+  ): Future[immutable.Seq[BatchStatement]] =
     handler
-      .asInstanceOf[EventStreamElement[Event] => Future[immutable.Seq[BoundStatement]]]
+      .asInstanceOf[EventStreamElement[Event] => Future[immutable.Seq[BatchStatement]]]
       .apply(element)
 
   override def globalPrepare(): Future[Done] = {
