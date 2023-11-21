@@ -26,6 +26,8 @@
     <Logger name="com.datastax.oss.driver.internal.core.control.ControlConnection" level="OFF"/>
     <!-- Turn down Kafka noise -->
     <Logger name="org.apache.kafka" level="WARN"/>
+    <!-- Turn on CosmosDB retry tracing (when CosmosDB is used) -->
+    <Logger name="com.azure.cosmos.cassandra.CosmosRetryPolicy" level="TRACE" />
 
     <AsyncRoot level="INFO">
       <AppenderRef ref="STDOUT"/>
