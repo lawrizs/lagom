@@ -4,16 +4,13 @@
 
 package com.lightbend.lagom.internal.scaladsl.persistence.cassandra
 
-import akka.persistence.query.Offset
-import akka.stream.ActorAttributes
-import akka.stream.scaladsl.Flow
 import akka.Done
 import akka.NotUsed
 import akka.actor.ActorSystem
-import com.datastax.oss.driver.api.core.DefaultConsistencyLevel
+import akka.persistence.query.Offset
+import akka.stream.ActorAttributes
+import akka.stream.scaladsl.Flow
 import com.datastax.oss.driver.api.core.cql.BatchStatement
-import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder
-import com.datastax.oss.driver.api.core.cql.BatchType
 import com.datastax.oss.driver.api.core.cql.BoundStatement
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetDao
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetStore
@@ -23,11 +20,11 @@ import com.lightbend.lagom.scaladsl.persistence._
 import com.lightbend.lagom.scaladsl.persistence.cassandra.CassandraSession
 import org.slf4j.LoggerFactory
 
+import scala.collection.JavaConverters._
 import scala.collection.immutable
+import scala.collection.immutable.Seq
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
-import scala.collection.JavaConverters._
-import scala.collection.immutable.Seq
 
 /**
  * Internal API
@@ -77,12 +74,12 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
 
       /** Chain futures, so they run sequentially, i.e., one after another. */
       def chainFutures[T](futureLambdas: Seq[() => Future[T]])(
-        implicit
-        ec: ExecutionContext
+          implicit
+          ec: ExecutionContext
       ): Future[Seq[T]] = {
 
         def chain(futureLambdas: List[() => Future[T]], acc: List[T]): Future[List[T]] = futureLambdas match {
-          case Nil => Future.successful(acc)
+          case Nil          => Future.successful(acc)
           case head :: tail => head.apply().flatMap(v => chain(tail, acc :+ v))
         }
 
@@ -167,7 +164,24 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
                 .setExecutionProfileName(readSideSettings.writeProfile)
                 .build()
 
-              Some(() => session.executeWriteBatch(batch)) // Execute as a batch
+              val job = session
+                .executeWriteBatch(batch)
+                .recoverWith {
+                  case _ =>
+                    this.log.warn(
+                      "Failed to execute a read-side batch query in the CosmosDB compatibility mode. Running statements one by one."
+                    )
+
+                    // Extract statements
+                    val stmts = batch.asScala.toSeq.to[immutable.Seq]
+
+                    // Chain statements one by one
+                    chainFutures(stmts.map(s => () => session.executeWrite(s)))
+                      .map(_ => Done)
+
+                }
+
+              Some(() => job) // Execute as a batch job
             }
           })
 
@@ -196,8 +210,8 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
         for {
           statements <- invoke(handler, elem)
           // Execute the batches in compatibility mode or not
-          _          <- if (this.isCosmosDBCompat) executeBatchesCosmosDBCompat(statements)
-                        else executeBatches(statements)
+          _ <- if (this.isCosmosDBCompat) executeBatchesCosmosDBCompat(statements)
+          else executeBatches(statements)
           // important: only commit offset once read view
           // statements has completed successfully
           _ <- session.executeWrite(offsetStatement(elem.offset))
