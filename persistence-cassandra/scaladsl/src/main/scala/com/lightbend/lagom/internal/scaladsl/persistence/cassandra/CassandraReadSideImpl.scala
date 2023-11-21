@@ -60,6 +60,7 @@ private[lagom] final class CassandraReadSideImpl(
 
       override def build(): ReadSideHandler[Event] = {
         new CassandraAutoReadSideHandler[Event](
+          system,
           session,
           cassandraReadSideSettings,
           offsetStore,
