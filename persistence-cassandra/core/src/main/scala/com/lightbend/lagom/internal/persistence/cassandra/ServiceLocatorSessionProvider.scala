@@ -44,6 +44,42 @@ private[lagom] final class ServiceLocatorSessionProvider(system: ActorSystem, co
   /** Check whether we run in CosmosDB compatibility mode */
   private val isCosmosDBCompat = system.settings.config.getBoolean("akka.persistence.cassandra.compatibility.cosmosdb")
 
+  /**
+   * CosmosDB does not handle batch statements, giving errors like "Partition key delete inside Batch request is not supported yet",
+   * some coming from akka-persistence-cassandra. Here, we customize Cql session to handle Batch queries manually */
+  private def customizeCqlSession(session: CqlSession): CqlSession = new CqlSession {
+    override def getName: String                  = session.getName
+    override def getMetadata: Metadata            = session.getMetadata
+    override def isSchemaMetadataEnabled: Boolean = session.isSchemaMetadataEnabled
+    override def setSchemaMetadataEnabled(newValue: lang.Boolean): CompletionStage[Metadata] =
+      session.setSchemaMetadataEnabled(newValue)
+    override def refreshSchemaAsync(): CompletionStage[Metadata]            = session.refreshSchemaAsync()
+    override def checkSchemaAgreementAsync(): CompletionStage[lang.Boolean] = session.checkSchemaAgreementAsync()
+    override def getContext: DriverContext                                  = session.getContext
+    override def getKeyspace: Optional[CqlIdentifier]                       = session.getKeyspace
+    override def getMetrics: Optional[Metrics]                              = session.getMetrics
+    override def closeFuture(): CompletionStage[Void]                       = session.closeFuture()
+    override def closeAsync(): CompletionStage[Void]                        = session.closeAsync()
+    override def forceCloseAsync(): CompletionStage[Void]                   = session.forceCloseAsync()
+    override def execute[RequestT <: Request, ResultT](request: RequestT, resultType: GenericType[ResultT]): ResultT =
+      request match {
+
+        /* In CosmosDB compatibility mode, handle batch statements, one by one */
+        case b: BatchStatement if b.size() > 0 && isCosmosDBCompat =>
+          val stmts = b.asScala
+          val ress  = stmts.map(s => session.execute(s, resultType)) // Run queries ony by one
+          val res   = ress.find(r => Option(r).isDefined) // Take the result of the 1st query, which is not null
+
+          res match {
+            case Some(r) => r                          // Return the result of the 1st query
+            case _       => null.asInstanceOf[ResultT] // Return null, in other cases (should not happen)
+          }
+
+        /* Handle all other statements normally */
+        case _ => session.execute(request, resultType)
+      }
+  }
+
   /** Build the CqlSession from the provided configs and apply needed customizations */
   private def buildSession(driverConfigLoader: DriverConfigLoader)(implicit ec: ExecutionContext): Future[CqlSession] =
     CqlSession
@@ -51,6 +87,7 @@ private[lagom] final class ServiceLocatorSessionProvider(system: ActorSystem, co
       .withConfigLoader(driverConfigLoader)
       .buildAsync()
       .toScala
+      .map(s => if (isCosmosDBCompat) customizeCqlSession(s) else s)
 
   override def connect()(implicit ec: ExecutionContext): Future[CqlSession] = {
     val serviceConfig = config.getConfig("service-discovery")
