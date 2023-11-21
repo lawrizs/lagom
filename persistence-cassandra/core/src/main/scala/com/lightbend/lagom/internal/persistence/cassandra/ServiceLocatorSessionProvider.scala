@@ -4,6 +4,7 @@
 
 package com.lightbend.lagom.internal.persistence.cassandra
 
+import akka.Done
 import akka.actor.ActorSystem
 import akka.stream.alpakka.cassandra.CqlSessionProvider
 import akka.stream.alpakka.cassandra.DriverConfigLoaderFromConfig
@@ -11,6 +12,7 @@ import com.datastax.oss.driver.api.core.`type`.reflect.GenericType
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader
 import com.datastax.oss.driver.api.core.context.DriverContext
 import com.datastax.oss.driver.api.core.cql.BatchStatement
+import com.datastax.oss.driver.api.core.cql.BatchableStatement
 import com.datastax.oss.driver.api.core.metadata.Metadata
 import com.datastax.oss.driver.api.core.metrics.Metrics
 import com.datastax.oss.driver.api.core.session.Request
@@ -29,6 +31,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.util.control.NoStackTrace
 import scala.collection.JavaConverters._
+import scala.compat.java8.FutureConverters
 
 /**
  * Internal API
@@ -61,23 +64,60 @@ private[lagom] final class ServiceLocatorSessionProvider(system: ActorSystem, co
     override def closeFuture(): CompletionStage[Void]                       = session.closeFuture()
     override def closeAsync(): CompletionStage[Void]                        = session.closeAsync()
     override def forceCloseAsync(): CompletionStage[Void]                   = session.forceCloseAsync()
-    override def execute[RequestT <: Request, ResultT](request: RequestT, resultType: GenericType[ResultT]): ResultT =
+    override def execute[RequestT <: Request, ResultT](request: RequestT, resultType: GenericType[ResultT]): ResultT = {
+
+      // Take the execution context
+      implicit val executionContext: ExecutionContext = system.dispatcher
+
+      /** Chain futures, so they run sequentially, i.e., one after another. */
+      def chainFutures[T](futureLambdas: Seq[() => Future[T]]): Future[Seq[T]] = {
+
+        // Chain the futures
+        def chain(futureLambdas: List[() => Future[T]], acc: List[T]): Future[List[T]] = futureLambdas match {
+          case Nil          => Future.successful(acc)
+          case head :: tail => head.apply().flatMap(v => chain(tail, acc :+ v))
+        }
+
+        chain(futureLambdas.toList, Nil)
+      }
+
       request match {
 
         /* In CosmosDB compatibility mode, handle batch statements, one by one */
         case b: BatchStatement if b.size() > 0 && isCosmosDBCompat =>
-          val stmts = b.asScala
-          val ress  = stmts.map(s => session.execute(s, resultType)) // Run queries ony by one
-          val res   = ress.find(r => Option(r).isDefined) // Take the result of the 1st query, which is not null
+          // Get the statements
+          val stmts: List[BatchableStatement[_]] = b.asScala.toList
 
-          res match {
-            case Some(r) => r                          // Return the result of the 1st query
-            case _       => null.asInstanceOf[ResultT] // Return null, in other cases (should not happen)
+          // Split the statements into head and tail
+          val head: BatchableStatement[_] = stmts.head
+          val tail                        = stmts.tail
+
+          // Execute the head
+          val headRes = session.execute(head, resultType)
+
+          // Process the query output
+          headRes match {
+            // Async case
+            case r: CompletionStage[_] =>
+              // Execute tail statements recursively
+              val tailRes = chainFutures(tail.map(s => () => FutureConverters.toScala(session.executeAsync(s))))
+                .map(_ => Done) // Run queries ony by one
+
+              // Return the combined result
+              FutureConverters.toJava(tailRes.flatMap(_ => FutureConverters.toScala(r))).asInstanceOf[ResultT]
+
+            // Sync case: run the queries one by one
+            case r =>
+              // Execute tail statements one by one
+              tail.foreach(s => session.execute(s, resultType))
+              // Return r
+              r
           }
 
         /* Handle all other statements normally */
         case _ => session.execute(request, resultType)
       }
+    }
   }
 
   /** Build the CqlSession from the provided configs and apply needed customizations */
