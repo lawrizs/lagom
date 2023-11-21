@@ -167,9 +167,9 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
               val job = session
                 .executeWriteBatch(batch)
                 .recoverWith {
-                  case e: Exception =>
+                  case _ =>
                     this.log.warn(
-                      "Failed to execute a read-side batch query in the CosmosDB compatibility mode. Running statements one by one.", e
+                      "Failed to execute a read-side batch query in the CosmosDB compatibility mode. Running statements one by one."
                     )
 
                     // Extract statements
