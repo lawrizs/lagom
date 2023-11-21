@@ -11,6 +11,7 @@ import akka.persistence.query.Offset
 import akka.stream.ActorAttributes
 import akka.stream.scaladsl.Flow
 import com.datastax.oss.driver.api.core.cql.BatchStatement
+import com.datastax.oss.driver.api.core.cql.BatchableStatement
 import com.datastax.oss.driver.api.core.cql.BoundStatement
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetDao
 import com.lightbend.lagom.internal.persistence.cassandra.CassandraOffsetStore
@@ -174,7 +175,7 @@ private[cassandra] abstract class CassandraReadSideHandler[Event <: AggregateEve
                     )
 
                     // Extract statements
-                    val stmts = batch.asScala.toSeq.to[immutable.Seq]
+                    val stmts = batch.asScala.toList
 
                     // Chain statements one by one
                     chainFutures(stmts.map(s => () => session.executeWrite(s)))
